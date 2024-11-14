@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { uploadOnCloudinary, deleteOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose"
@@ -221,6 +221,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const {oldPassword , newPassword} = req.body
 
+    if(!oldPassword){
+        throw new ApiError(400, "old password not find")
+    }
+
     const user = await User.findById(req.user?._id)
     const passwordCorrect = await user.isPasswordCorrect(oldPassword)
 
@@ -229,7 +233,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     }
 
     user.password = newPassword
-    await user.save({validateBeforeSave: flase})
+    await user.save({validateBeforeSave: false})
 
     return res.status(200)
     .json(new ApiResponse(200, {}, "password changed successfully"))
@@ -238,7 +242,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
     return res
     .status(200)
-    .json(200, req.user, "current user fectched successfully")
+    .json(new ApiResponse (200, req.user, "current user fectched successfully"))
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
@@ -270,7 +274,14 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
        if(!avatarLocalPath){
             throw new ApiError(400, "Avatar file is missing")
-       }
+       }    
+
+      const deleteAvatar = await deleteOnCloudinary(req.user.avatar)
+
+      if(!deleteAvatar){
+        throw new ApiError(401, "avatar is not deleted")
+    }
+
 
       const avatar = await uploadOnCloudinary(avatarLocalPath)
 
@@ -287,6 +298,10 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         },
         {new: true}
       ).select("-password")
+
+    //   delete avatar on cloudniary
+
+    
 
       return res
       .status(200)
@@ -372,9 +387,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             $project: {
                 fullName:1,
                 username: 1,
-                subscribersCount,
-                channelsSubscribedToCount,
-                isSubscribed,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
                 avatar: 1,
                 coverImage: 1,
                 email: 1
@@ -425,8 +440,10 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                         }
                     },
                     {
-                        $addFields: {
-                            $first: "$owner"
+                     $addFields: {
+                        owner:{
+                                $first:"$owner"
+                            }
                         }
                     }
                 ]
