@@ -135,6 +135,22 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params
     // TODO: remove video from playlist
 
+    if(!(playlistId || videoId)) throw new ApiError(400, "playlist and video Id are not found")
+
+        const updatedPlaylist = await PlayList.findByIdAndUpdate(
+            playlistId,
+            { $pull: { playListVideos: videoId } }, // Remove the videoId from videos array
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedPlaylist) {
+            return res.status(404).json({ message: 'Playlist not found' });
+        }
+    
+        return res
+        .status(200)
+        .json(new ApiResponse(200, updatedPlaylist, "video remove to the playlist successfully"))
+
 })
 
 const deletePlaylist = asyncHandler(async (req, res) => {
@@ -155,6 +171,27 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     const {name, description} = req.body
     //TODO: update playlist
+    if(!playlistId) throw new ApiError(400, "playlist Id is invalid")
+
+    if(!(name || description)) throw new ApiError(400, "name and description field is required")
+
+    const updatedPlaylist = await PlayList.findByIdAndUpdate(playlistId, {
+        $set:{
+            name: name,
+            description: description
+        }   
+    },
+    {
+        new: true
+    }
+    )
+
+    if(!updatedPlaylist) throw new ApiError(500, "internal server erroe playlist is not updated")
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, updatedPlaylist, "playlist is updated successfully"))
+
 })
 
 export {
