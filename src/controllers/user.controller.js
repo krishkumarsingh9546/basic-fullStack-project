@@ -97,6 +97,18 @@ const registerUser = asyncHandler(async (req, res) => {
 
 });
 
+const getAllUsers = asyncHandler(async (req, res)=> {
+    const users = await User.find().select("-password -refreshToken")
+
+    if(!users || users.length === 0){
+        throw new ApiError(404, "no users found")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, users, "all users found successfully"))
+}) 
+
 
 const loginUser = asyncHandler(async (req, res) => {
     // req body -> data
@@ -469,5 +481,6 @@ export { registerUser,
         updateUserAvatar,
         updateUserCoverImage,
         getUserChannelProfile,
-        getWatchHistory
+        getWatchHistory,
+        getAllUsers
     }
