@@ -51,6 +51,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
                   avatar: 1,
                 },
               },
+            ],
+          },
+        },
               {
                 $lookup: {
                   from: "likes",
@@ -97,9 +100,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
                   },
                 },
               },
-            ],
-          },
-        },
         {
           $skip: (page - 1) * limit,
         },
